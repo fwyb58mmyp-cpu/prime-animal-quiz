@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prime Animal Quiz</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg:#fff3f8; --card:#ffffff; --text:#3f2e42; --sub:#9c85a0; --line:#ffdcee;
+    --eat:#ffb238; --sleep:#3bd6b0; --move:#ff7a66; --water:#4fc3ff; --accent:#ff5c9d;
+    --accent2:#7b5cff;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --bg:#241a28; --card:#2f2233; --text:#fbeaf5; --sub:#c6a8ce; --line:#4a3550; }
+  }
+  :root[data-theme="dark"]{ --bg:#241a28; --card:#2f2233; --text:#fbeaf5; --sub:#c6a8ce; --line:#4a3550; }
+  html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%;}
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Noto Sans Thai","Segoe UI",sans-serif;
+    padding:16px; padding-bottom:calc(40px + env(safe-area-inset-bottom,0px));
+    max-width:520px; margin:0 auto;
+  }
+  h1{font-size:1.25rem;margin:2px 0 14px;background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;}
+  .bar{height:8px;background:var(--line);border-radius:8px;overflow:hidden;margin-bottom:18px;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s;border-radius:8px;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+  .qnum{font-size:.78rem;color:var(--sub);margin-bottom:4px;font-weight:700;}
+  .qtext{font-size:1.1rem;font-weight:800;margin-bottom:16px;line-height:1.5;}
+  .opt{
+    display:block;width:100%;text-align:left;padding:14px 16px;margin-bottom:10px;
+    border-radius:18px;border:2px solid var(--line);background:var(--card);color:var(--text);
+    font-size:.95rem;cursor:pointer;line-height:1.4;transition:transform .12s,border-color .12s;
+  }
+  .opt:active{transform:scale(.97);border-color:var(--accent);}
+  .opt b{color:#fff;background:var(--accent);margin-right:8px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;font-size:.75rem;}
+  .navrow{display:flex;justify-content:space-between;margin-top:6px;}
+  .backbtn{background:none;border:none;color:var(--sub);font-size:.9rem;cursor:pointer;padding:8px 0;}
+
+  /* result card */
+  #resultWrap{padding:4px;}
+  .rcard{
+    border-radius:28px;border:3px solid var(--rc-border,#2e9c85);
+    background:var(--rc-bg,#eef8f4); padding:28px 20px; text-align:center;
+    box-shadow:0 8px 24px -8px var(--rc-border,#2e9c85);
+  }
+  .rlabel{font-weight:700;font-size:.82rem;color:var(--rc-accent,#1f7a63);margin-bottom:14px;}
+  .ricon{width:120px;height:120px;margin:0 auto 14px;}
+  .rtitle{font-size:1.5rem;font-weight:800;color:var(--rc-accent,#1f7a63);margin-bottom:6px;}
+  .rsub{font-weight:700;font-size:.95rem;margin-bottom:10px;}
+  .rdesc{font-size:.88rem;color:var(--sub);margin-bottom:16px;line-height:1.6;}
+  .rquote{
+    background:var(--rc-quote,#d7ede6); border-radius:14px; padding:14px 16px;
+    font-style:italic; font-size:.88rem; margin-bottom:18px; line-height:1.6;
+  }
+  .rtiplabel{font-weight:700;font-size:.85rem;color:var(--rc-accent,#1f7a63);text-align:left;margin-bottom:10px;}
+  .rtip{display:flex;gap:10px;text-align:left;margin-bottom:10px;font-size:.85rem;line-height:1.5;}
+  .rtipnum{flex:none;width:22px;height:22px;border-radius:50%;background:var(--rc-accent,#1f7a63);color:#fff;
+    font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+  .ringcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:16px;text-align:center;}
+  canvas{width:100%;max-width:300px;display:block;margin:0 auto;}
+  .legend{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+  .legrow{display:flex;align-items:center;gap:8px;font-size:.85rem;}
+  .dot{width:10px;height:10px;border-radius:50%;flex:none;}
+  .pct{margin-left:auto;font-weight:700;}
+
+  button.primary{width:100%;padding:15px;border:none;border-radius:18px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;
+    font-size:1rem;font-weight:800;cursor:pointer;margin-top:14px;
+    box-shadow:0 6px 16px -4px var(--accent);}
+  button.primary:active{transform:scale(.98);}
+  button.secondary{width:100%;padding:12px;border:2px solid var(--line);border-radius:18px;background:var(--card);
+    color:var(--text);font-size:.92rem;font-weight:700;cursor:pointer;margin-top:8px;}
+  .note{font-size:.78rem;color:var(--sub);margin-top:14px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<h1>🐢🦉🐻🐰 Prime Animal Quiz</h1>
+<div class="bar"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
+
+<div id="quizScreen" class="screen active">
+  <div class="qnum" id="qnum">ข้อ 1 / 10</div>
+  <div class="qtext" id="qtext"></div>
+  <div id="opts"></div>
+  <div class="navrow"><button class="backbtn" id="backBtn">← ย้อนกลับ</button></div>
+</div>
+
+<div id="resultScreen" class="screen">
+  <div id="resultWrap"></div>
+  <div class="ringcard">
+    <div style="font-weight:700;font-size:.95rem;margin-bottom:10px;">Body Ring ของคุณ</div>
+    <canvas id="ringCanvas" width="680" height="680"></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+  <button class="primary" id="dlBtn">ดาวน์โหลดผลลัพธ์ (PNG)</button>
+  <button class="secondary" id="restartBtn">ทำอีกครั้ง</button>
+  <p class="note">Ring % = 30 + (คะแนน ÷ 10) × 55 ต่อวง (คะแนนจากตารางน้ำหนัก 0–10 ที่ให้มา)<br>
+  หมายเหตุ: ข้อ 1, 3, 6, 8 เป็นคำถามฉบับร่างสำหรับ demo ยังไม่ใช่ข้อความจริงจากบรีฟ — แก้ไขได้ในโค้ดส่วน QUESTIONS</p>
+</div>
+
+<script>
+/* ---------- Ring questions: exact weights from brief ---------- */
+const RING_W = {
+  q2:{A:6,B:2,C:4,D:10},
+  q4:{A:2,B:4,C:5,D:10},
+  q7:{A:2,B:8,C:7,D:10},
+  q5:{A:4,B:1,C:5,D:10},
+  q9:{A:4,B:2,C:9,D:7},
+  q10:{A:5,B:2,C:4,D:10}
+};
+
+/* ---------- Question bank (10 questions) ---------- */
+/* q1,q3,q6,q8 = personality (draft copy, edit as needed) */
+const QUESTIONS = [
+  {id:'q1', ring:null, text:'เวลาทำงาน/เรียน คุณเป็นแบบไหน', opts:{
+    A:'มีไฟตอนดึกๆ มากกว่าตอนกลางวัน',
+    B:'ขอทำแบบสบายๆ ไม่เร่งตัวเอง',
+    C:'ลุยเต็มที่แล้วขอพักยาว',
+    D:'ทำเท่าเดิมทุกวันอย่างสม่ำเสมอ'}},
+  {id:'q2', ring:'sleep', text:'ตารางการนอนของคุณเป็นแบบไหน', opts:{
+    D:'เข้านอน-ตื่นเวลาเดิมทุกวัน',
+    A:'นอนดึกตื่นสาย แต่เป็นแพทเทิร์นของตัวเอง',
+    C:'นอนน้อยแต่ตื่นตรงเวลา',
+    B:'นอนเมื่อไหร่ก็ได้ งีบไม่เลือกเวลา'}},
+  {id:'q3', ring:null, text:'เวลาว่าง คุณมักจะ...', opts:{
+    A:'ทำงาน/งานอดิเรกที่ชอบตอนดึกคนเดียว',
+    B:'นอนเล่น ชิลๆ อยู่บ้าน',
+    C:'ออกไปทำกิจกรรมเต็มที่ในทีเดียว',
+    D:'ทำกิจวัตรเดิมๆ ที่คุ้นเคย'}},
+  {id:'q4', ring:'eat', text:'มื้อเช้าของคุณเป็นแบบไหน', opts:{
+    D:'กินเวลาเดิม เมนูคล้ายเดิม',
+    C:'กินไวๆ ระหว่างทาง',
+    B:'กินเยอะ กินได้ทุกอย่าง',
+    A:'ข้ามมื้อเช้า/กินสายมาก'}},
+  {id:'q5', ring:'move', text:'การออกกำลังกายของคุณเป็นแบบไหน', opts:{
+    D:'ทำน้อยแต่สม่ำเสมอ ไม่เคยขาด',
+    C:'หนักทีเดียว แต่ไม่ต่อเนื่อง',
+    A:'ไม่มีเวลาแน่นอน ตามอารมณ์',
+    B:'ขี้เกียจขยับ ไม่บังคับตัวเองไม่ทำเลย'}},
+  {id:'q6', ring:null, text:'ถ้าต้องเลือกคำที่ใช่ที่สุดสำหรับตัวเอง', opts:{
+    A:'อิสระ ตามจังหวะตัวเอง',
+    B:'สบาย ไม่เร่งรีบ',
+    C:'เต็มที่ แล้วพัก',
+    D:'สม่ำเสมอ มั่นคง'}},
+  {id:'q7', ring:'eat', text:'เวลาเครียด คุณมักจะ...', opts:{
+    D:'ดึงตัวเองกลับเข้า routine การกินเร็วที่สุด',
+    B:'นอนยาว (ไม่พึ่งการกินระบายเครียด)',
+    C:'หาอะไรทำให้ยุ่ง (ไม่พึ่งการกิน)',
+    A:'กินของว่าง/ของหวานดึกๆ คลายเครียด'}},
+  {id:'q8', ring:null, text:'เวลาเจอเรื่องเครียด/ต้องตัดสินใจ คุณมักจะ...', opts:{
+    A:'อยู่คนเดียวเงียบๆ ตอนดึกแล้วค่อยคิด',
+    B:'พักผ่อนก่อน ค่อยว่ากันทีหลัง',
+    C:'ลุยแก้ปัญหาให้จบไว',
+    D:'ทำตามขั้นตอนที่เคยทำมาซ้ำๆ'}},
+  {id:'q9', ring:'move', text:'วันหยุดของคุณเป็นแบบไหน', opts:{
+    C:'อัดกิจกรรมเต็มวัน เคลื่อนไหวเยอะ',
+    D:'ทำกิจวัตรปกติต่อเนื่อง',
+    A:'ไม่มีตารางเวลา ตื่นสาย',
+    B:'อยู่บ้านชิลๆ กินนอนเป็นหลัก'}},
+  {id:'q10', ring:'water', text:'การดื่มน้ำของคุณเป็นแบบไหน', opts:{
+    D:'ดื่มปริมาณใกล้เคียงกันทุกวัน',
+    A:'นึกได้ก็ดื่ม ไม่นับจริงจัง',
+    C:'ดื่มเยอะตอนออกกำลังกาย วันปกติน้อย',
+    B:'ดื่มน้อย มักลืม'}}
+];
+
+/* ---------- Animal result templates ---------- */
+const ANIMALS = {
+  D:{ name:'เต่า', title:'เต่ามั่นคง',
+    desc:'คุณไม่ใช่คนที่เร็วที่สุด แต่มั่นคงที่สุด ชอบทำสิ่งเดิมซ้ำๆ อย่างมีวินัย และเชื่อว่าความสม่ำเสมอคือกุญแจของทุกอย่าง',
+    quote:'ไม่ต้องเร็ว แค่ทำทุกวันอย่างสม่ำเสมอ สุดท้ายก็ไปถึงเป้าหมายได้',
+    tips:['ลองเปิดใจรับความเปลี่ยนแปลงเล็กๆ บ้าง จะได้ไม่รู้สึกติดอยู่ที่เดิม',
+          'แชร์กิจวัตรดีๆ ของคุณให้คนรอบตัว อาจช่วยพวกเขาได้เหมือนกัน',
+          'บางครั้งก็อนุญาตให้ตัวเองพักจากตารางบ้าง ไม่ใช่เรื่องผิดปกติ'],
+    bg:'#e3fbf3', border:'#2fd6a8', accent:'#0e9e78', quoteBg:'#c6f7e6' },
+  A:{ name:'นกฮูก', title:'นกฮูกราตรี',
+    desc:'คุณมีพลังพุ่งตอนดึก ชอบทำอะไรตามจังหวะของตัวเองมากกว่าตามตารางใคร ช่วงเวลาที่ดีที่สุดของคุณมักมาทีหลังคนอื่นเข้านอนไปแล้ว',
+    quote:'ความเงียบตอนดึกคือช่วงเวลาที่หัวโล่งและคิดอะไรออกที่สุด',
+    tips:['ลองหาช่วงเงียบสงบตอนกลางวันบ้าง จะช่วยเรื่องสุขภาพระยะยาว',
+          'บอกคนรอบตัวว่าคุณตื่นตัวตอนไหน จะช่วยให้ทำงานร่วมกันง่ายขึ้น',
+          'ตั้งเวลานอนแบบยืดหยุ่นแต่ไม่สุดขั้ว ร่างกายจะได้พักพอดี'],
+    bg:'#f0ecff', border:'#8a5cff', accent:'#6a3fe0', quoteBg:'#e0d6ff' },
+  B:{ name:'หมี', title:'หมีขี้อ้อน',
+    desc:'คุณรักความสบายและไม่ชอบเร่งรีบ มองว่าการพักผ่อนคือสิ่งสำคัญที่สุด ถ้าไม่มีใครมาชวน คุณอยู่ในโหมดชิลได้ทั้งวัน',
+    quote:'ขอแค่ได้นอนพอ กินอิ่ม อยู่สบายๆ ก็ถือว่าเป็นวันที่ดีแล้ว',
+    tips:['ลองตั้งเป้าหมายเล็กๆ ให้ตัวเองขยับบ้าง จะได้ไม่เฉื่อยเกินไป',
+          'หากิจกรรมหรือเพื่อนที่ช่วยดึงคุณออกจาก comfort zone เป็นครั้งคราว',
+          'ให้รางวัลตัวเองหลังทำสิ่งที่ต้องฝืนใจ จะช่วยสร้างแรงจูงใจได้ดี'],
+    bg:'#fff2df', border:'#ffab3d', accent:'#d97b0e', quoteBg:'#ffe3b3' },
+  C:{ name:'กระต่าย', title:'กระต่ายพลังพุ่ง',
+    desc:'คุณมีพลังเต็มร้อยเวลาลุย แต่ก็หมดไฟง่ายพอกัน ชอบทำอะไรให้จบในทีเดียวมากกว่าค่อยๆ ทำไปเรื่อยๆ',
+    quote:'ถ้าจะทำ ต้องทำให้สุด แต่พอเสร็จแล้วก็ขอพักยาวๆ บ้างนะ',
+    tips:['แบ่งงานใหญ่เป็นชิ้นเล็กๆ จะช่วยไม่ให้หมดไฟหลังลุยหนัก',
+          'วางแผนช่วงพักไว้ล่วงหน้า จะได้ไม่รู้สึกผิดเวลาต้องหยุด',
+          'หาจังหวะที่พลังพุ่งที่สุดของตัวเองให้เจอ แล้ววางงานสำคัญไว้ช่วงนั้น'],
+    bg:'#ffeaf3', border:'#ff5c9d', accent:'#e83b82', quoteBg:'#ffd1e6' }
+};
+
+const RINGS_META = [
+  {key:'eat',  label:'กิน',    color:'#e2a33d'},
+  {key:'sleep',label:'นอน',    color:'#2e9c85'},
+  {key:'move', label:'ขยับ',   color:'#c65d3b'},
+  {key:'water',label:'ดื่มน้ำ',color:'#3f7fb5'}
+];
+
+/* ---------- State & flow ---------- */
+const answers = {};
+let idx = 0;
+const qnum = document.getElementById('qnum');
+const qtext = document.getElementById('qtext');
+const opts = document.getElementById('opts');
+const barFill = document.getElementById('barFill');
+const backBtn = document.getElementById('backBtn');
+
+function renderQuestion(){
+  const q = QUESTIONS[idx];
+  qnum.textContent = `ข้อ ${idx+1} / ${QUESTIONS.length}`;
+  qtext.textContent = q.text;
+  barFill.style.width = (idx/QUESTIONS.length*100)+'%';
+  backBtn.style.visibility = idx===0 ? 'hidden' : 'visible';
+  opts.innerHTML='';
+  ['A','B','C','D'].forEach(letter=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.innerHTML = `<b>${letter}.</b>${q.opts[letter]}`;
+    b.onclick=()=>{ answers[q.id]=letter; idx++; idx<QUESTIONS.length ? renderQuestion() : finish(); };
+    opts.appendChild(b);
+  });
+}
+backBtn.onclick = ()=>{ if(idx>0){ idx--; renderQuestion(); } };
+
+function avg(a,b){ return (a+b)/2; }
+
+function computeRings(){
+  const sleep = RING_W.q2[answers.q2] ?? 0;
+  const eat = avg(RING_W.q4[answers.q4] ?? 0, RING_W.q7[answers.q7] ?? 0);
+  const move = avg(RING_W.q5[answers.q5] ?? 0, RING_W.q9[answers.q9] ?? 0);
+  const water = RING_W.q10[answers.q10] ?? 0;
+  const raw = {eat, sleep, move, water};
+  return RINGS_META.map(m=>({...m, score:raw[m.key], pct: 30 + (raw[m.key]/10)*55}));
+}
+
+function computeAnimal(){
+  const votes={A:0,B:0,C:0,D:0};
+  ['q1','q3','q6','q8'].forEach(q=>{ if(answers[q]) votes[answers[q]]++; });
+  const maxV = Math.max(...Object.values(votes));
+  const top = Object.keys(votes).filter(k=>votes[k]===maxV);
+  return top.length>1 ? (answers.q6 || top[0]) : top[0];
+}
+
+function drawRings(results){
+  const c=document.getElementById('ringCanvas'); const ctx=c.getContext('2d');
+  const W=c.width,H=c.height,cx=W/2,cy=H/2;
+  ctx.clearRect(0,0,W,H);
+  const ringWidth=44, gap=14, outerR=W/2-20;
+  results.forEach((r,i)=>{
+    const radius = outerR - i*(ringWidth+gap);
+    ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2);
+    ctx.strokeStyle='#e7e1d6'; ctx.lineWidth=ringWidth; ctx.stroke();
+    const frac=Math.max(0,Math.min(1,r.pct/100));
+    ctx.beginPath(); ctx.arc(cx,cy,radius,-Math.PI/2,-Math.PI/2+frac*Math.PI*2);
+    ctx.strokeStyle=r.color; ctx.lineCap='round'; ctx.lineWidth=ringWidth; ctx.stroke();
+  });
+}
+
+function finish(){
+  document.getElementById('quizScreen').classList.remove('active');
+  document.getElementById('resultScreen').classList.add('active');
+  barFill.style.width='100%';
+
+  const animalLetter = computeAnimal();
+  const A = ANIMALS[animalLetter];
+  document.documentElement.style.setProperty('--rc-bg', A.bg);
+  const wrap = document.getElementById('resultWrap');
+  wrap.innerHTML = `
+    <div class="rcard" style="--rc-border:${A.border};--rc-bg:${A.bg};--rc-accent:${A.accent};--rc-quote:${A.quoteBg};">
+      <div class="rlabel">ผลลัพธ์แบบทดสอบของคุณ</div>
+      <div class="ricon">${animalSVG(animalLetter, A.accent, A.border)}</div>
+      <div class="rtitle">${A.title}</div>
+      <div class="rsub">ในชีวิตประจำวัน คุณคือ${A.name}</div>
+      <div class="rdesc">${A.desc}</div>
+      <div class="rquote">"${A.quote}"</div>
+      <div class="rtiplabel">ทริคเล็กๆ สำหรับ${A.name}อย่างคุณ</div>
+      ${A.tips.map((t,i)=>`<div class="rtip"><div class="rtipnum">${i+1}</div><div>${t}</div></div>`).join('')}
+    </div>`;
+
+  const results = computeRings();
+  drawRings(results);
+  const legend = document.getElementById('legend');
+  legend.innerHTML='';
+  results.forEach(r=>{
+    const row=document.createElement('div'); row.className='legrow';
+    row.innerHTML=`<span class="dot" style="background:${r.color}"></span>${r.label} (${r.score.toFixed(1)}/10)<span class="pct">${r.pct.toFixed(0)}%</span>`;
+    legend.appendChild(row);
+  });
+}
+
+function eyes(cx1,cx2,cy){
+  return `<circle cx="${cx1}" cy="${cy}" r="7" fill="#3a2e42"/><circle cx="${cx1-2.3}" cy="${cy-2.3}" r="2.2" fill="#fff"/>
+    <circle cx="${cx2}" cy="${cy}" r="7" fill="#3a2e42"/><circle cx="${cx2-2.3}" cy="${cy-2.3}" r="2.2" fill="#fff"/>`;
+}
+function blush(cx1,cx2,cy,color){
+  return `<ellipse cx="${cx1}" cy="${cy}" rx="8" ry="5" fill="${color}" opacity=".6"/><ellipse cx="${cx2}" cy="${cy}" rx="8" ry="5" fill="${color}" opacity=".6"/>`;
+}
+function animalSVG(letter, accent, light){
+  const shapes = {
+    D: `<circle cx="60" cy="60" r="55" fill="${light}33"/>
+      <ellipse cx="24" cy="84" rx="10" ry="14" fill="${light}"/><ellipse cx="96" cy="84" rx="10" ry="14" fill="${light}"/>
+      <ellipse cx="60" cy="48" rx="40" ry="30" fill="${accent}"/>
+      <path d="M26 48 Q60 28 94 48" stroke="${light}" stroke-width="3" fill="none" opacity=".6"/>
+      <path d="M22 60 Q60 78 98 60" stroke="${light}" stroke-width="3" fill="none" opacity=".6"/>
+      <circle cx="60" cy="88" r="25" fill="${light}"/>
+      ${eyes(50,70,86)}${blush(37,83,96,'#ff8fb3')}
+      <path d="M51 101 Q60 107 69 101" stroke="#3a2e42" stroke-width="2.5" fill="none" stroke-linecap="round"/>`,
+    A: `<circle cx="60" cy="60" r="55" fill="${light}33"/>
+      <path d="M40 22 L33 42 L50 34 Z" fill="${light}"/><path d="M80 22 L87 42 L70 34 Z" fill="${light}"/>
+      <ellipse cx="60" cy="70" rx="38" ry="40" fill="${light}"/>
+      <ellipse cx="26" cy="72" rx="10" ry="20" fill="${accent}" opacity=".45"/><ellipse cx="94" cy="72" rx="10" ry="20" fill="${accent}" opacity=".45"/>
+      <circle cx="46" cy="62" r="17" fill="#fff"/><circle cx="74" cy="62" r="17" fill="#fff"/>
+      ${eyes(46,74,63)}
+      <polygon points="60,68 54,78 66,78" fill="#ffb238"/>
+      ${blush(27,93,80,'#ff9fc0')}
+      <ellipse cx="60" cy="100" rx="15" ry="7" fill="#fff" opacity=".55"/>`,
+    B: `<circle cx="60" cy="60" r="55" fill="${light}33"/>
+      <circle cx="34" cy="32" r="13" fill="${light}"/><circle cx="86" cy="32" r="13" fill="${light}"/>
+      <circle cx="34" cy="32" r="6" fill="${accent}" opacity=".5"/><circle cx="86" cy="32" r="6" fill="${accent}" opacity=".5"/>
+      <circle cx="60" cy="64" r="38" fill="${light}"/>
+      ${eyes(48,72,58)}
+      <ellipse cx="60" cy="74" rx="14" ry="10" fill="#fff"/>
+      <circle cx="60" cy="72" r="4" fill="#3a2e42"/>
+      <path d="M52 80 Q60 86 68 80" stroke="#3a2e42" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      ${blush(30,90,68,'#ffb98f')}`,
+    C: `<circle cx="60" cy="60" r="55" fill="${light}33"/>
+      <ellipse cx="44" cy="26" rx="9" ry="24" fill="${light}"/><ellipse cx="76" cy="26" rx="9" ry="24" fill="${light}"/>
+      <ellipse cx="44" cy="28" rx="4" ry="16" fill="${accent}" opacity=".4"/><ellipse cx="76" cy="28" rx="4" ry="16" fill="${accent}" opacity=".4"/>
+      <circle cx="60" cy="66" r="36" fill="${light}"/>
+      ${eyes(48,72,62)}
+      <polygon points="60,70 56,76 64,76" fill="#ff8fb3"/>
+      <path d="M60 76 Q54 84 46 82 M60 76 Q66 84 74 82" stroke="#3a2e42" stroke-width="2" fill="none" stroke-linecap="round"/>
+      ${blush(30,90,72,'#ff9fc0')}`
+  };
+  return `<svg viewBox="0 0 120 120" width="120" height="120">${shapes[letter]}</svg>`;
+}
+
+document.getElementById('restartBtn').onclick = ()=>{
+  for(const k in answers) delete answers[k];
+  idx=0;
+  document.getElementById('resultScreen').classList.remove('active');
+  document.getElementById('quizScreen').classList.add('active');
+  renderQuestion();
+};
+
+document.getElementById('dlBtn').onclick = async ()=>{
+  const target = document.getElementById('resultScreen');
+  if(!window.html2canvas){ alert('โหลดตัวช่วยสร้างรูปไม่สำเร็จ ลองรีเฟรชหน้าแล้วลองใหม่'); return; }
+  const canvas = await html2canvas(target, {backgroundColor:getComputedStyle(document.body).backgroundColor, scale:2});
+  const dataUrl = canvas.toDataURL('image/png');
+  showSaveOverlay(dataUrl);
+};
+
+function showSaveOverlay(dataUrl){
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(20,10,20,.9);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;';
+  overlay.innerHTML = `
+    <img src="${dataUrl}" style="max-width:100%;max-height:62vh;border-radius:20px;box-shadow:0 12px 32px rgba(0,0,0,.5);">
+    <p style="color:#fff;margin-top:18px;font-size:.9rem;text-align:center;line-height:1.7;">📱 มือถือ/แท็บเล็ต: แตะรูปด้านบน<b>ค้างไว้</b> แล้วเลือก "บันทึกรูปภาพ"<br>💻 คอมพิวเตอร์: กดปุ่มดาวน์โหลดด้านล่างได้เลย</p>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <a href="${dataUrl}" download="prime-animal-quiz-result.png" style="padding:12px 22px;background:#fff;border-radius:14px;color:#3a2e42;text-decoration:none;font-weight:800;">ดาวน์โหลด</a>
+      <button id="closeOverlayBtn" style="padding:12px 22px;background:transparent;border:2px solid #fff;border-radius:14px;color:#fff;font-weight:800;cursor:pointer;">ปิด</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('closeOverlayBtn').onclick=()=>overlay.remove();
+}
+
+renderQuestion();
+</script>
+</body>
+</html>
